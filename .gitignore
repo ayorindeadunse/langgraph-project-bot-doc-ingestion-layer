@@ -1,0 +1,15 @@
+# Python cache and envs
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+chroma_store/
+.env.*
+venv/
+.envrc
+
+# VS Code/IDE files (optional)
+.vscode/
+
+# Mac system files (optional)
+.DS_Store
