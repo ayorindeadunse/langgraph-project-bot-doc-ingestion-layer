@@ -1,4 +1,4 @@
-from langchain.document_loaders import WebBaseLoader
+from langchain_community.document_loaders import WebBaseLoader
 
 # This file contains logic to load and clean docs from the web (LangChain/LangGraph)
 
