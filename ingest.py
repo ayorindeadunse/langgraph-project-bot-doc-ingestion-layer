@@ -29,6 +29,7 @@ def ingest_documents():
     vectorstore.persist()
     print(f"Ingested {len(chunks)} chunks into vectorstore.")
 
-    if __name__ == "__main__":
+    
+if __name__ == "__main__":
         ingest_documents()
 
