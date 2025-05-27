@@ -1,4 +1,11 @@
 from langchain_community.document_loaders import WebBaseLoader
+from  dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+USER_AGENT = os.getenv("USER_AGENT", "LanggraphBotDocIngestor/1.0 (adunseayorinde@gmail.com)")
+HEADERS = {"User-Agent": USER_AGENT}
 
 # This file contains logic to load and clean docs from the web (LangChain/LangGraph)
 
@@ -59,5 +66,5 @@ URLS =  [
 ]
 
 def load_documents():
-    loader = WebBaseLoader(URLS)
+    loader = WebBaseLoader(web_paths=URLS, header_template=HEADERS)
     return loader.load()
