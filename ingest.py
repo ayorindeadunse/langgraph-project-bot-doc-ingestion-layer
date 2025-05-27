@@ -1,4 +1,5 @@
 import os
+import shutil
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
@@ -11,14 +12,18 @@ from tqdm import tqdm
 load_dotenv()
 
 def ingest_documents():
-    print("Loading documents...")
+    print("🧹 Cleaning up existing Chroma vectorstore...")
+    if os.path.exists("./chroma_store"):
+          shutil.rmtree("./chroma_store")
+
+    print("📄 Loading documents...")
     raw_docs = load_documents()
 
-    print("Splitting documents into chunks...")
+    print("✂️ Splitting documents into chunks...")
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_documents(raw_docs)
 
-    print("Embedding and storing in Chroma...")
+    print("🧠 Embedding and storing in Chroma...")
     embeddings = OpenAIEmbeddings()
     vectorstore = Chroma.from_documents(
         documents=chunks,
