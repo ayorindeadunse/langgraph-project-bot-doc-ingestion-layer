@@ -1,11 +1,11 @@
 import os
 import shutil
-from dotenv import load_dotenv # type: ignore
-from langchain_text_splitters import RecursiveCharacterTextSplitter # type: ignore
-from langchain_community.vectorstores import Chroma # type: ignore
-from langchain_huggingface import HuggingFaceEmbeddings # type: ignore
+from dotenv import load_dotenv
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
 from loaders.langchain_docs import load_documents
-from tqdm import tqdm # type: ignore
+from tqdm import tqdm
 
 
 # Load .env

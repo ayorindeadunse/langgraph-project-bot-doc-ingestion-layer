@@ -1,5 +1,5 @@
-from langchain_community.document_loaders import WebBaseLoader # type: ignore
-from  dotenv import load_dotenv # type: ignore
+from langchain_community.document_loaders import WebBaseLoader
+from  dotenv import load_dotenv
 import os
 
 load_dotenv()
