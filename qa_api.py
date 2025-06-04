@@ -3,9 +3,9 @@ import traceback
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_chroma import Chroma
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.chains.retrieval_qa import RetrievalQA 
-from langchain.llms.huggingface_pipeline import HuggingFacePipeline
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain.chains import RetrievalQA 
+from langchain_huggingface import HuggingFacePipeline
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from transformers import pipeline,AutoModelForSeq2SeqLM,AutoTokenizer
@@ -44,7 +44,7 @@ pipe = pipeline(
 )
 
 # Wrap pipeline into LangChain's HuggingFacePipeline LLM wrapper
-llm = HuggingFacePipeline(pipelien=pipe)
+llm = HuggingFacePipeline(pipeline=pipe)
 
 # Setup the RetrievalQA chain with the self-hosted LLM
 qa_chain = RetrievalQA.from_chain_type(
