@@ -12,7 +12,7 @@ from tqdm import tqdm
 load_dotenv()
 
 def ingest_documents():
-    chroma_dir  = "./chroma_store"
+    chroma_dir  = "./chroma_db"
     if os.path.exists(chroma_dir):    
         print("🧹 Cleaning up existing Chroma vectorstore...")
         shutil.rmtree(chroma_dir)

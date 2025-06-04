@@ -59,9 +59,9 @@ def read_root():
 async def ask_question(request: QueryRequest):
     try:
         # Manually retrieve first
-        retrieved_docs = retriever.get_relevant_documents(request.question)
+        retrieved_docs = retriever.invoke(request.question)
         print(f"[DEBUG] Retrieved {len(retrieved_docs)} documents")
-        
+
         result = qa_chain.invoke({"query": request.question})
         return {
             "answer": result["result"],
