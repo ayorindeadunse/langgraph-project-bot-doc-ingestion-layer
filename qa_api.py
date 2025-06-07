@@ -59,13 +59,24 @@ def read_root():
 async def ask_question(request: QueryRequest):
     try:
         # Manually retrieve first
-        retrieved_docs = retriever.invoke(request.question)
-        print(f"[DEBUG] Retrieved {len(retrieved_docs)} documents")
+       # retrieved_docs = retriever.invoke(request.question)
+       # print(f"[DEBUG] Retrieved {len(retrieved_docs)} documents")
 
         result = qa_chain.invoke({"query": request.question})
+
+        # Deduplicate by unique combination of title + source url
+        seen = set()
+        unique_sources = []
+        for doc in result["source_documents"]:
+            meta = doc.metadata
+            key = (meta.get("title"), meta.get("source"))
+            if key not in seen:
+                seen.add(key)
+                unique_sources.append(meta)
+
         return {
             "answer": result["result"],
-            "sources": [doc.metadata for doc in result["source_documents"]],
+            "sources": unique_sources,
         }
     except Exception as e:
         tb = "".join(traceback.format_exception(None, e, e.__traceback__))
