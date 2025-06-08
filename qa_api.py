@@ -58,26 +58,48 @@ def read_root():
 @app.post("/ask")
 async def ask_question(request: QueryRequest):
     try:
-        # Manually retrieve first
-       # retrieved_docs = retriever.invoke(request.question)
-       # print(f"[DEBUG] Retrieved {len(retrieved_docs)} documents")
 
-        result = qa_chain.invoke({"query": request.question})
+        #  Inject tone control into the prompt
+        conversational_prompt = (
+            f"Answer in a friendly,  helpful tone. Use markdown links  for any references. "
+            f"Only answer based on the provided context. If the question is unrelated, say you don't know.\n\n"
+            f"Question: {request.question}"
+        )
+        # Run the RetrievalQA chain with the modified prompt
+        result = qa_chain.invoke({"query": conversational_prompt})
 
-        # Deduplicate by unique combination of title + source url
+        answer = result.get("result","").strip()
+        source_docs = result.get("source_documents", [])
+
+        # Gracefully handle empty answers or unrelated questions
+        if not answer or len(answer) < 5 or "i don't  know" in answer.lower():
+            return {
+                "response": (
+                     "🤖 Sorry, I couldn't find anything relevant for that. "
+                    "Try asking something related to LangChain or LangGraph!"
+                )
+            }
+        # Deduplicate source documents (by  title +  source URL)
         seen = set()
-        unique_sources = []
-        for doc in result["source_documents"]:
+        links = []
+        for doc in source_docs:
             meta = doc.metadata
-            key = (meta.get("title"), meta.get("source"))
-            if key not in seen:
+            title = meta.get("title", "Untitled")
+            source = meta.get("source","")
+            key = (title, source)
+            if source and key not in seen:
                 seen.add(key)
-                unique_sources.append(meta)
+                links.append(f". [{title}]({source})")
+        # Format final response
+        if links:
+            sources_md = "\n\n**Sources:**\n" + "\n".join(links)
+            full_response = f"{answer}\n\n{sources_md}"
+        else:
+            full_response = answer
 
-        return {
-            "answer": result["result"],
-            "sources": unique_sources,
-        }
+        return {"response": full_response}
     except Exception as e:
         tb = "".join(traceback.format_exception(None, e, e.__traceback__))
         raise HTTPException(status_code=500, detail=tb)
+
+       
