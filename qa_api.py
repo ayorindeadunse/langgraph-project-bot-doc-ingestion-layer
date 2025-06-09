@@ -10,6 +10,7 @@ from langchain_huggingface import HuggingFacePipeline
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from transformers import pipeline, AutoModelForSeq2SeqLM, AutoTokenizer
+from memory import SessionMemory
 
 # Load environment variables
 load_dotenv()
@@ -81,7 +82,7 @@ async def ask_question(request: QueryRequest):
         if not answer or "i don't know" in answer.lower():
             return {
                 "response": (
-                    "🤖 Sorry, I couldn't find anything relevant for that. "
+                    "Sorry, I couldn't find anything relevant for that. "
                     "Try asking something related to LangChain or LangGraph!"
                 )
             }
