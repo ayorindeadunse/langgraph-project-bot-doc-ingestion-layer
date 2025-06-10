@@ -3,7 +3,7 @@ from threading import Lock
 
 class SessionMemory:
     def __init__(self):
-        self.sessions: Dict[str, List[Tuple[str,  str]]] = {}
+        self.sessions: Dict[str, List[Tuple[str, str]]] = {}
         self.lock = Lock()
     
     def add_message(self, session_id:str, question: str, answer:  str):
