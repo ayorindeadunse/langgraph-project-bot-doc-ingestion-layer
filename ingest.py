@@ -7,16 +7,18 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from loaders.langchain_docs import load_documents
 from tqdm import tqdm
 
-
-# Load .env
+# Load .env variables
 load_dotenv()
 
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+
 def ingest_documents():
-    chroma_dir  = "./chroma_db"
-    if os.path.exists(chroma_dir):    
+    chroma_dir = "./chroma_db"
+    
+    if os.path.exists(chroma_dir):
         print("🧹 Cleaning up existing Chroma vectorstore...")
         shutil.rmtree(chroma_dir)
-   
+
     print("📄 Loading documents...")
     raw_docs = load_documents()
 
@@ -25,7 +27,8 @@ def ingest_documents():
     chunks = splitter.split_documents(raw_docs)
 
     print("🧠 Embedding and storing in Chroma (locally)...")
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+    
     vectorstore = Chroma.from_documents(
         documents=chunks,
         embedding=embeddings,
@@ -33,8 +36,7 @@ def ingest_documents():
     )
 
     vectorstore.persist()
-    print(f"Ingested {len(chunks)} chunks into vectorstore.")
-   
-if __name__ == "__main__":
-        ingest_documents()
+    print(f"✅ Ingested {len(chunks)} chunks into vectorstore.")
 
+if __name__ == "__main__":
+    ingest_documents()

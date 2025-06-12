@@ -1,17 +1,18 @@
 import os
-import traceback
 import uuid
+import traceback
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.chains import RetrievalQA 
 from langchain.prompts import PromptTemplate
-from langchain_huggingface import HuggingFacePipeline
-from pydantic import BaseModel
-from dotenv import load_dotenv
+from langchain.chains import LLMChain
+from langchain.chains.combine_documents.base import BaseCombineDocumentsChain
+from langchain.chains.combine_documents.stuff import StuffDocumentsChain
+from langchain_huggingface import HuggingFacePipeline, HuggingFaceEmbeddings
+from langchain_chroma import Chroma
 from transformers import pipeline, AutoModelForSeq2SeqLM, AutoTokenizer
 from memory import SessionMemory
+from pydantic import BaseModel
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -27,31 +28,22 @@ class QueryRequest(BaseModel):
     question: str
 
 # Initialize session memory
-memory =  SessionMemory()
+memory = SessionMemory()
 
-# Setup embeddings + vectorstore
-embedding = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+LLM_MODEL = "google/flan-t5-base"
+
+embedding = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
 vectorstore = Chroma(persist_directory="chroma_db", embedding_function=embedding)
 retriever = vectorstore.as_retriever()
+retriever.search_kwargs = {"k": 10}
 
-# Self-hosted LLM setup
-model_name = "google/flan-t5-base"  
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-
-# Create Hugging Face pipeline for text2text generation
-pipe = pipeline(
-    "text2text-generation",
-    model=model,
-    tokenizer=tokenizer,
-    max_length=512,
-    do_sample=False,
-)
-
-# Wrap pipeline into LangChain's HuggingFacePipeline LLM wrapper
+tokenizer = AutoTokenizer.from_pretrained(LLM_MODEL)
+model = AutoModelForSeq2SeqLM.from_pretrained(LLM_MODEL)
+pipe = pipeline("text2text-generation", model=model, tokenizer=tokenizer, max_length=512, do_sample=False)
 llm = HuggingFacePipeline(pipeline=pipe)
 
-# Custom prompt template to inject a friendly tone
+# Define prompt and LLMChain explicitly
 prompt_template = PromptTemplate(
     input_variables=["history", "context", "question"],
     template=(
@@ -60,10 +52,11 @@ prompt_template = PromptTemplate(
         "Only use the provided context to answer. If the question is unrelated, say 'I don't know.'\n\n"
         "Conversation history:\n{history}\n\n"
         "Context:\n{context}\n\n"
-        "User's Question:n{question}\n\n"
+        "User's Question:\n{question}\n\n"
         "Answer:"
     )
 )
+llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 
 
 @app.get("/")
@@ -74,39 +67,37 @@ def read_root():
 async def ask_question(
     request: QueryRequest,
     session_id: str = Query(default=None)
-    ):
+):
     try:
-        # Generate a new session ID if one wasn't provided
         if not session_id:
             session_id = str(uuid.uuid4())
 
-        # Get conversation history for this session
         history_pairs = memory.get_session(session_id)
         history_text = "\n".join([f"User: {q}\nBot: {a}" for q, a in history_pairs])
 
-        # Run RetrievalQA with user's question to get the context
-        result = qa_chain_with_history(request.question, history_text)
+        # Retrieve documents for the context
+        docs = retriever.get_relevant_documents(request.question)
+        context = "\n\n".join([doc.page_content for doc in docs])
 
-        answer = result.get("result", "").strip()
-        source_docs = result.get("source_documents", [])
+        # Run the LLM chain with explicitly all variables
+        result = llm_chain.invoke({
+            "history": history_text,
+            "context": context,
+            "question": request.question
+        })
 
-        # Add the Q&A to the memory
+        if isinstance(result, dict):
+            answer = result.get("text","").strip()
+        else:
+            answer = str(result).strip()
+
+        # Save to session memory
         memory.add_message(session_id, request.question, answer)
 
-        # Gracefully handle empty answers or unrelated questions
-        if not answer or "i don't know" in answer.lower(): # refactor much later to be able to answer questions with multiple use cases
-            return {
-                "response": (
-                    "Sorry, I couldn't find anything relevant for that. "
-                    "Try asking something related to LangChain or LangGraph!"
-                ),
-                "session_id": session_id
-            }
-
-        # Append sources (if any)
-        seen = set()
+        # Prepare links from metadata
         links = []
-        for doc in source_docs:
+        seen = set()
+        for doc in docs:
             meta = doc.metadata
             title = meta.get("title", "Untitled")
             source = meta.get("source", "")
@@ -115,33 +106,10 @@ async def ask_question(
                 seen.add(key)
                 links.append(f"- [{title}]({source})")
 
-        if links:
-            sources_md = "\n\n**Sources:**\n" + "\n".join(links)
-            full_response = f"{answer}\n\n{sources_md}"
-        else:
-            full_response = answer
+        full_response = f"{answer}\n\n**Sources:**\n" + "\n".join(links) if links else answer
 
         return {"response": full_response, "session_id": session_id}
+
     except Exception as e:
         tb = "".join(traceback.format_exception(None, e, e.__traceback__))
-        raise HTTPException(status_code=500, detail=tb)
-    
-def qa_chain_with_history(question: str, history: str):
-    # Create new RetrievalQA on each request with the  updated prompt
-    custom_prompt = PromptTemplate(
-        input_variables=["context", "question", "history"],
-        template=prompt_template.template
-    )
-
-    qa_chain = RetrievalQA.from_chain_type(
-        llm=llm,
-        retriever=retriever,
-        return_source_documents=True,
-        chain_type_kwargs={"prompt": custom_prompt}
-    )
-
-    return qa_chain.invoke({
-        "context": "", # Let retriever fill this in
-        "question": question,
-        "history": history
-    })
+        raise HTTPException(status_code=500, detail={"error": str(e), "trace": tb})
