@@ -32,7 +32,7 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 embedding = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
 vectorstore = Chroma(persist_directory="chroma_db", embedding_function=embedding)
 retriever = vectorstore.as_retriever()
-retriever.search_kwargs = {"k": 3}
+retriever.search_kwargs = {"k": 3, "include_metadata": True}
 
 MODEL_PATH = "./models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
 tiny_llama = AutoModelForCausalLM.from_pretrained(
@@ -62,13 +62,14 @@ llm = CTransformersLLM(tiny_llama)
 prompt_template = PromptTemplate(
     input_variables=["history", "context", "question"],
     template=(
-       "You are a helpful and friendly assistant. Use markdown links for references when possible.\n"
-        "Be conversational and natural in tone. Use step-by-step reasoning when helpful.\n"
-        "Only use the provided context to answer. If you are unsure, say 'I don't know.'\n\n"
+       "You are a helpful  assistant specialized in  LangGraph  and LangChain documentation. \n"
+        "Respond to the  user's question clearly and  directly using only the context provided. \n"
+        "Do  NOT  repeat the  user's question.If the answer is not  in the context, say \"I don't know\".\n"
+        "Respond in a natural, helpful tone. Use markdown formatting (e.g., bullet points, links) when useful.  \n\n"
         "Conversation history:\n{history}\n\n"
-        "Context:\n{context}\n\n"
+        "Documentation Context:\n{context}\n\n"
         "User's Question:\n{question}\n\n"
-        "Answer:"
+        "**Your Answer:**"
     )
 )
 llm_chain = LLMChain(llm=llm, prompt=prompt_template)
@@ -101,10 +102,19 @@ async def ask_question(
 
         # Post-processing to remove prompt echoes
         def clean_output(text: str) -> str:
-            keywords = ["Helpful information:", "Previous conversation:", "Context:", "User's Question:", "Question:", "Answer:"]
+            keywords = ["Helpful information:", "Previous conversation:", "Context:", "User's Question:", "Question:", "Answer:", "**Your Answer:**"]
             for key in keywords:
                 if key in text:
                     text = text.split(key)[-1].strip()
+            text = text.strip(" \"'\n\t")
+
+            # Attempt to remove echoes of the question as  the answer
+            if text.endswith("?"):
+                lines = text.splitlines()
+                if len(lines) == 1:
+                    text = "" # very likely just an echoed question
+                elif lines[-1].strip() == lines[-2].strip():
+                    text = "\n".join(lines[:-1]).strip()
             return text
 
         answer = clean_output(raw_answer)
