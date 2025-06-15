@@ -32,7 +32,7 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 embedding = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
 vectorstore = Chroma(persist_directory="chroma_db", embedding_function=embedding)
 retriever = vectorstore.as_retriever()
-retriever.search_kwargs = {"k": 3, "include_metadata": True}
+retriever.search_kwargs = {"k": 3}
 
 MODEL_PATH = "./models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
 tiny_llama = AutoModelForCausalLM.from_pretrained(
