@@ -32,7 +32,7 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 embedding = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
 vectorstore = Chroma(persist_directory="chroma_db", embedding_function=embedding)
 retriever = vectorstore.as_retriever()
-retriever.search_kwargs = {"k": 8}
+retriever.search_kwargs = {"k": 3}
 
 MODEL_PATH = "./models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
 tiny_llama = AutoModelForCausalLM.from_pretrained(
@@ -62,12 +62,13 @@ llm = CTransformersLLM(tiny_llama)
 prompt_template = PromptTemplate(
     input_variables=["history", "context", "question"],
     template=(
-        "You are a helpful assistant. Use markdown links for references.\n"
-        "Only answer using the provided information. If you don't know, say 'I don't know.'\n\n"
-        "Previous conversation:\n{history}\n\n"
-        "Helpful information:\n{context}\n\n"
-        "Question:\n{question}\n\n"
-        "Answer concisely:"
+       "You are a helpful and friendly assistant. Use markdown links for references when possible.\n"
+        "Be conversational and natural in tone. Use step-by-step reasoning when helpful.\n"
+        "Only use the provided context to answer. If you are unsure, say 'I don't know.'\n\n"
+        "Conversation history:\n{history}\n\n"
+        "Context:\n{context}\n\n"
+        "User's Question:\n{question}\n\n"
+        "Answer:"
     )
 )
 llm_chain = LLMChain(llm=llm, prompt=prompt_template)
@@ -116,10 +117,17 @@ async def ask_question(
             meta = doc.metadata
             title = meta.get("title", "Untitled")
             source = meta.get("source", "")
-            key = (title, source)
-            if source and key not in seen:
-                seen.add(key)
-                links.append(f"- [{title}]({source})")
+
+            # Guard: Ensure source is a valid URL
+            if source and (source.startswith("http://") or source.startswith("https://")):
+                key = (title, source)
+                if key not in seen:
+                    seen.add(key)
+                    links.append(f"- [{title}]({source})")
+
+        # Optional: fallback when no valid sources found
+        if not links and docs:
+            links.append("*No valid source URLs provided.*")
 
         full_response = f"{answer}\n\n**Sources:**\n" + "\n".join(links) if links else answer
         return {"response": full_response, "session_id": session_id}
