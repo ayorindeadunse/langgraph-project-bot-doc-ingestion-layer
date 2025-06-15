@@ -74,6 +74,8 @@ prompt_template = PromptTemplate(
 )
 llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 
+MIN_CONTEXT_LENGTH = 30
+
 @app.get("/")
 def read_root():
     return {"message": "QA API is running"}
@@ -92,6 +94,13 @@ async def ask_question(
 
         docs = retriever.get_relevant_documents(request.question)
         context = "\n\n".join([doc.page_content for doc in docs])
+
+        if not context.strip() or len(context.strip()) < MIN_CONTEXT_LENGTH:
+            fallback_answer = (
+                "I specialize in answering questions about LangGraph and LangChain documentation. \n"
+                "That topic appears unrelated,  so I can't provide  a reliable answer."
+            )
+            return  {"response": fallback_answer, "session_id": session_id}
 
         result = llm_chain.invoke({
             "history": history_text,

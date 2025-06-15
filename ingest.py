@@ -16,17 +16,17 @@ def ingest_documents():
     chroma_dir = "./chroma_db"
     
     if os.path.exists(chroma_dir):
-        print("🧹 Cleaning up existing Chroma vectorstore...")
+        print("Cleaning up existing Chroma vectorstore...")
         shutil.rmtree(chroma_dir)
 
-    print("📄 Loading documents...")
+    print("Loading documents...")
     raw_docs = load_documents()
 
-    print("✂️ Splitting documents into chunks...")
+    print("Splitting documents into chunks...")
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_documents(raw_docs)
 
-    print("🧠 Embedding and storing in Chroma (locally)...")
+    print("Embedding and storing in Chroma (locally)...")
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
     
     vectorstore = Chroma.from_documents(
@@ -36,7 +36,7 @@ def ingest_documents():
     )
 
     vectorstore.persist()
-    print(f"✅ Ingested {len(chunks)} chunks into vectorstore.")
+    print(f"Ingested {len(chunks)} chunks into vectorstore.")
 
 if __name__ == "__main__":
     ingest_documents()
