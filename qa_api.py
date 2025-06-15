@@ -125,7 +125,7 @@ async def ask_question(
                     seen.add(key)
                     links.append(f"- [{title}]({source})")
 
-        # Optional: fallback when no valid sources found
+        # Optional:fallback when no valid sources found
         if not links and docs:
             links.append("*No valid source URLs provided.*")
 
