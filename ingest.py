@@ -10,7 +10,8 @@ from tqdm import tqdm
 # Load .env variables
 load_dotenv()
 
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+# EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L12-v2"
 
 def ingest_documents():
     chroma_dir = "./chroma_db"

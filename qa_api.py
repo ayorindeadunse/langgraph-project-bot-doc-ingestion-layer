@@ -30,7 +30,7 @@ class QueryRequest(BaseModel):
 
 memory = SessionMemory()
 
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L12-v2"
 embedding = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
 vectorstore = Chroma(persist_directory="chroma_db", embedding_function=embedding)
 retriever = vectorstore.as_retriever()
@@ -64,20 +64,21 @@ llm = CTransformersLLM(tiny_llama)
 prompt_template = PromptTemplate(
     input_variables=["history", "context", "question"],
     template=(
-       "You are a helpful assistant specialized in LangGraph and LangChain documentation.\n"
-        "Respond to the  user's question clearly and  directly using only the context provided.\n"
-        "Do NOT repeat the user's question.If the answer is not in the context, say \"I don't know\".\n"
-        "Respond in a natural, helpful tone. Use markdown formatting (e.g., bullet points, links) when useful.\n\n"
+       "You are a helpful assistant specializing in LangGraph and LangChain documentation.\n"
+        "Example Q&A:\n"
+        "Q: What is LangChain?\n"
+        "A: LangChain is an open-source framework for developing applications powered by language models.\n"
+        "Q: What is LangGraph?\n"
+        "A: LangGraph extends LangChain to enable building applications as stateful graphs.\n\n"
+        "Now, using the following context:\n{context}\n\n"
         "Conversation history:\n{history}\n\n"
-        "Documentation Context:\n{context}\n\n"
-        "User's Question:\n{question}\n\n"
-        "**Your Answer:**"
+        "Q: {question}\nA:"
     )
 )
 llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 
 MIN_CONTEXT_LENGTH = 30
-SIMILARITY_THRESHOLD = 0.4  
+SIMILARITY_THRESHOLD = 0.3 
 
 @app.get("/")
 def read_root():
