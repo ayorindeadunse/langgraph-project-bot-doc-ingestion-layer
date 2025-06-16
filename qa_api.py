@@ -12,6 +12,8 @@ from langchain.llms.base import LLM
 from memory import SessionMemory
 from pydantic import BaseModel, PrivateAttr
 from dotenv import load_dotenv
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 # Load environment variables
 load_dotenv()
@@ -39,7 +41,7 @@ tiny_llama = AutoModelForCausalLM.from_pretrained(
     MODEL_PATH,
     model_type="lllama",
     context_length=2048,
-    gpu_layers=0
+    gpu_layers=0 # So that any system without GPU can run it
 )
 
 class CTransformersLLM(LLM):
@@ -62,10 +64,10 @@ llm = CTransformersLLM(tiny_llama)
 prompt_template = PromptTemplate(
     input_variables=["history", "context", "question"],
     template=(
-       "You are a helpful  assistant specialized in  LangGraph  and LangChain documentation. \n"
-        "Respond to the  user's question clearly and  directly using only the context provided. \n"
-        "Do  NOT  repeat the  user's question.If the answer is not  in the context, say \"I don't know\".\n"
-        "Respond in a natural, helpful tone. Use markdown formatting (e.g., bullet points, links) when useful.  \n\n"
+       "You are a helpful assistant specialized in LangGraph and LangChain documentation.\n"
+        "Respond to the  user's question clearly and  directly using only the context provided.\n"
+        "Do NOT repeat the user's question.If the answer is not in the context, say \"I don't know\".\n"
+        "Respond in a natural, helpful tone. Use markdown formatting (e.g., bullet points, links) when useful.\n\n"
         "Conversation history:\n{history}\n\n"
         "Documentation Context:\n{context}\n\n"
         "User's Question:\n{question}\n\n"
@@ -75,6 +77,7 @@ prompt_template = PromptTemplate(
 llm_chain = LLMChain(llm=llm, prompt=prompt_template)
 
 MIN_CONTEXT_LENGTH = 30
+SIMILARITY_THRESHOLD = 0.4  
 
 @app.get("/")
 def read_root():
@@ -98,7 +101,7 @@ async def ask_question(
         if not context.strip() or len(context.strip()) < MIN_CONTEXT_LENGTH:
             fallback_answer = (
                 "I specialize in answering questions about LangGraph and LangChain documentation. \n"
-                "That topic appears unrelated,  so I can't provide  a reliable answer."
+                "That topic appears unrelated, so I can't provide a reliable answer."
             )
             return  {"response": fallback_answer, "session_id": session_id}
 
@@ -128,6 +131,20 @@ async def ask_question(
 
         answer = clean_output(raw_answer)
 
+        # Semantic similarity filtering
+        question_emb = embedding.embed_query(request.question)
+        answer_emb = embedding.embed_query(answer)
+        similarity = cosine_similarity(
+            np.array(question_emb).reshape(1, -1),
+            np.array(answer_emb).reshape(1, -1)
+        )[0][0]
+
+        if similarity < SIMILARITY_THRESHOLD:
+            answer = (
+                "I specialize in answering questions about LangGraph and LangChain documentation.\n"
+                "That topic appears unrelated, so I can't provide a reliable answer."
+            )
+            
         memory.add_message(session_id, request.question, answer)
 
         links = []
