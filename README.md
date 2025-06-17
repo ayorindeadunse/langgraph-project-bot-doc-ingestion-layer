@@ -19,17 +19,17 @@ LangGraphBotDocIngestor is a ChatBot API designed to assist with answering quest
 
 # Directory Structure
 LangGraphBotDocIngestor/
-├── chroma_db/              # Persistent storage for document embeddings
-├── loaders/
-│   └── langchain_docs.py   # Ingest script for LangChain documentation
-├── models/                 # Quantized TinyLlama GGUF model
-├── .env                    # Environment variables
-├── ingest.py               # Script to build embedding database
-├── qa_api.py               # FastAPI app serving the Q&A endpoint
-├── memory.py               # In-memory session storage for conversations
-├── requirements.txt        # Development dependencies
-├── pinned-requirements.txt # Locked versions for production
-└── README.md               # Project documentation
+- chroma_db/              # Persistent storage for document embeddings
+- loaders/
+  - langchain_docs.py   # Ingest script for LangChain documentation
+- models/                 # Quantized TinyLlama GGUF model
+- .env                    # Environment variables
+- ingest.py               # Script to build embedding database
+- qa_api.py               # FastAPI app serving the Q&A endpoint
+- memory.py               # In-memory session storage for conversations
+- requirements.txt        # Development dependencies
+- pinned-requirements.txt # Locked versions for production
+- README.md               # Project documentation
 
 # Getting Started
 Clone the Repository
@@ -37,10 +37,10 @@ Clone the Repository
 git clone https://github.com/ayorindeadunse/langgraph-project-bot-doc-ingestion-layer.git
 cd LangGraphBotDocIngestor
 
-Set Up Environment Variables
+# Set Up Environment Variables
 Create a .env file in the root directory if required for specific secrets.
 
-Example .env:
+# Example .env:
 USER_AGENT=LanggraphBotDocIngestor/1.x (your_email_here)
 HUGGINGFACEHUB_API_TOKEN=your_huggingface_api_token_here
 # any other environmental variable that might be needed in the course of code update/refactoring
