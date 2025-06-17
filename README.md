@@ -43,11 +43,11 @@ Create a .env file in the root directory if required for specific secrets.
 # Example .env:
 USER_AGENT=LanggraphBotDocIngestor/1.x (your_email_here)
 HUGGINGFACEHUB_API_TOKEN=your_huggingface_api_token_here
-# any other environmental variable that might be needed in the course of code update/refactoring
+
+- any other environmental variable that might be needed in the course of code update/refactoring
 
 # Installing Dependencies
-
-# For development:
+## For development:
 
 bash
 pip install -r requirements.txt
