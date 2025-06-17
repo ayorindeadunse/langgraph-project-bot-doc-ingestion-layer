@@ -1,5 +1,5 @@
 # About
-LangGraphBotDocIngestor is an ChatBot API designed to assist with answering questions about LangGraph and LangChain documentation. It leverages local embeddings, a retrieval-augmented generation (RAG) architecture, and a lightweight Llama-based local language model.
+LangGraphBotDocIngestor is a ChatBot API designed to assist with answering questions about LangGraph and LangChain documentation. It leverages local embeddings, a retrieval-augmented generation (RAG) architecture, and a lightweight Llama-based local language model.
 
 
  # Features
