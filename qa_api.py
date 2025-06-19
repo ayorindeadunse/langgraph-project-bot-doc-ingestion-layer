@@ -64,7 +64,7 @@ llm = CTransformersLLM(tiny_llama)
 prompt_template = PromptTemplate(
     input_variables=["history", "context", "question"],
     template=(
-       "You are a helpful assistant specializing in LangGraph and LangChain documentation.\n"
+     "You are a helpful assistant specializing in LangGraph and LangChain documentation.\n"
         "Example Q&A:\n"
         "Q: What is LangChain?\n"
         "A: LangChain is an open-source framework for developing applications powered by language models.\n"
