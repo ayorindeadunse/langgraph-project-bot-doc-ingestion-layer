@@ -14,6 +14,7 @@ from pydantic import BaseModel, PrivateAttr
 from dotenv import load_dotenv
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
+import config
 
 # Load environment variables
 load_dotenv()
@@ -30,16 +31,15 @@ class QueryRequest(BaseModel):
 
 memory = SessionMemory()
 
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L12-v2"
-embedding = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
-vectorstore = Chroma(persist_directory="chroma_db", embedding_function=embedding)
+embedding = HuggingFaceEmbeddings(model_name=config.EMBEDDING_MODEL)
+vectorstore = Chroma(persist_directory=config.CHROMA_PERSIST_DIR, embedding_function=embedding)
 retriever = vectorstore.as_retriever()
-retriever.search_kwargs = {"k": 3}
+retriever.search_kwargs = {"k": config.RETRIEVER_K}
 
-MODEL_PATH = "./models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
-tiny_llama = AutoModelForCausalLM.from_pretrained(
-    MODEL_PATH,
-    model_type="lllama",
+MODEL_PATH = config.MODEL_PATH
+llm_model = AutoModelForCausalLM.from_pretrained(
+    config.MODEL_PATH,
+    model_type=config.MODEL_TYPE,
     context_length=2048,
     gpu_layers=0 # So that any system without GPU can run it
 )
@@ -58,27 +58,14 @@ class CTransformersLLM(LLM):
     def _llm_type(self):
         return "ctransformers"
 
-llm = CTransformersLLM(tiny_llama)
+llm = CTransformersLLM(llm_model)
 
 # Updated prompt - less likely to be echoed in output
 prompt_template = PromptTemplate(
     input_variables=["history", "context", "question"],
-    template=(
-     "You are a helpful assistant specializing in LangGraph and LangChain documentation.\n"
-        "Example Q&A:\n"
-        "Q: What is LangChain?\n"
-        "A: LangChain is an open-source framework for developing applications powered by language models.\n"
-        "Q: What is LangGraph?\n"
-        "A: LangGraph extends LangChain to enable building applications as stateful graphs.\n\n"
-        "Now, using the following context:\n{context}\n\n"
-        "Conversation history:\n{history}\n\n"
-        "Q: {question}\nA:"
-    )
+    template=config.PROMPT_TEMPLATE
 )
 llm_chain = LLMChain(llm=llm, prompt=prompt_template)
-
-MIN_CONTEXT_LENGTH = 30
-SIMILARITY_THRESHOLD = 0.3 
 
 @app.get("/")
 def read_root():
@@ -99,7 +86,7 @@ async def ask_question(
         docs = retriever.get_relevant_documents(request.question)
         context = "\n\n".join([doc.page_content for doc in docs])
 
-        if not context.strip() or len(context.strip()) < MIN_CONTEXT_LENGTH:
+        if not context.strip() or len(context.strip()) < config.MIN_CONTEXT_LENGTH:
             fallback_answer = (
                 "I specialize in answering questions about LangGraph and LangChain documentation. \n"
                 "That topic appears unrelated, so I can't provide a reliable answer."
@@ -140,7 +127,7 @@ async def ask_question(
             np.array(answer_emb).reshape(1, -1)
         )[0][0]
 
-        if similarity < SIMILARITY_THRESHOLD:
+        if similarity < config.SIMILARITY_THRESHOLD:
             answer = (
                 "I specialize in answering questions about LangGraph and LangChain documentation.\n"
                 "That topic appears unrelated, so I can't provide a reliable answer."
