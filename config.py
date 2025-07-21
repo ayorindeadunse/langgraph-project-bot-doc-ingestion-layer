@@ -2,8 +2,8 @@
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L12-v2"
 
 # LLM Model
-MODEL_PATH = "./models/phi-2.Q6_K.gguf" #phi-2 currently not supported by ctransformers so this has to be updated to a more compatible model
-MODEL_TYPE = "phi2"
+MODEL_PATH = "./models/mistral-7b-instruct-v0.1.Q5_K_M.gguf" 
+MODEL_TYPE = "llama"
 
 # Chroma vectorstore directory
 CHROMA_PERSIST_DIR = "chroma_db"
